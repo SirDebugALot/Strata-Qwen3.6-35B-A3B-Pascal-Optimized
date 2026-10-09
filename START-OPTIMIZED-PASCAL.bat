@@ -4,7 +4,7 @@ cd /d "%~dp0"
 
 if "%~1"=="" (
   echo Usage: %~nx0 "D:\path\to\Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf" [options]
-  echo Example: %~nx0 "D:\models\Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf" --port 8005
+  echo Example: %~nx0 "D:\models\Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf" --port 8080
   exit /b 2
 )
 

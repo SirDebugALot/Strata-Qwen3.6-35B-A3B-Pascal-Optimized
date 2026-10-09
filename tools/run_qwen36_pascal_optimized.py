@@ -110,7 +110,7 @@ def main() -> int:
     parser.add_argument("--engine", default=str(ROOT / "build-sm61" / "strata-qwen35moe.exe"))
     parser.add_argument("--tokenizer", help="existing tokenizer directory; extracted from the GGUF when omitted")
     parser.add_argument("--cuda-bin", help="CUDA runtime bin directory to prepend for the child engine")
-    parser.add_argument("--port", type=int, default=8005)
+    parser.add_argument("--port", type=int, default=8080)
     parser.add_argument("--context", type=int, default=25000)
     parser.add_argument("--threads", type=int, default=6)
     parser.add_argument("--host", default="127.0.0.1")
