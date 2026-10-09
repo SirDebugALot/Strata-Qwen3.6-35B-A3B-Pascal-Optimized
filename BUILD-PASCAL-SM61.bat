@@ -32,10 +32,12 @@ if errorlevel 1 (
 
 if not exist "%LLAMA_DIR%\.git" (
   echo Fetching pinned llama.cpp source...
-  git clone https://github.com/ggml-org/llama.cpp.git "%LLAMA_DIR%"
+  git -c core.longpaths=true clone --filter=blob:none --no-checkout https://github.com/ggml-org/llama.cpp.git "%LLAMA_DIR%"
   if errorlevel 1 exit /b 1
 )
 
+git -C "%LLAMA_DIR%" config core.longpaths true
+if errorlevel 1 exit /b 1
 git -C "%LLAMA_DIR%" fetch --depth 1 origin "%LLAMA_COMMIT%"
 if errorlevel 1 exit /b 1
 git -C "%LLAMA_DIR%" checkout --detach "%LLAMA_COMMIT%"
