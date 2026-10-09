@@ -1,0 +1,94 @@
+name: Windows Pascal release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows-sm61:
+    name: Build Windows x64 CUDA 12.9 sm61
+    runs-on: windows-2022
+    timeout-minutes: 120
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install CUDA Toolkit 12.9
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $installer = Join-Path $env:RUNNER_TEMP "cuda_12.9.1_windows_network.exe"
+          $url = "https://developer.download.nvidia.com/compute/cuda/12.9.1/network_installers/cuda_12.9.1_windows_network.exe"
+          Invoke-WebRequest -Uri $url -OutFile $installer
+          $packages = @(
+            "-s", "-n",
+            "nvcc_12.9",
+            "cudart_12.9",
+            "cublas_12.9",
+            "cublas_dev_12.9",
+            "visual_studio_integration_12.9"
+          )
+          $process = Start-Process -FilePath $installer -ArgumentList $packages -Wait -PassThru
+          if ($process.ExitCode -notin @(0, 3010)) {
+            throw "CUDA installer failed with exit code $($process.ExitCode)"
+          }
+
+          $cudaPath = "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.9"
+          if (-not (Test-Path (Join-Path $cudaPath "bin\nvcc.exe"))) {
+            throw "nvcc.exe was not installed under $cudaPath"
+          }
+          "CUDA_PATH=$cudaPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          (Join-Path $cudaPath "bin") | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          & (Join-Path $cudaPath "bin\nvcc.exe") --version
+
+      - name: Verify build tools
+        shell: pwsh
+        run: |
+          cmake --version
+          ninja --version
+          git --version
+
+      - name: Build optimized Pascal engine
+        shell: cmd
+        run: BUILD-PASCAL-SM61.bat
+
+      - name: Validate executable and Python launchers
+        shell: pwsh
+        run: |
+          $env:PATH = "$env:CUDA_PATH\bin;$env:PATH"
+          & .\build-sm61\strata-qwen35moe.exe --help
+          python -m py_compile tools\run_qwen36_pascal_optimized.py tools\strata_tokenizer.py serve\server.py
+
+      - name: Package portable Windows release
+        shell: pwsh
+        run: |
+          $version = if ($env:GITHUB_REF_TYPE -eq "tag") { $env:GITHUB_REF_NAME } else { "snapshot-$($env:GITHUB_SHA.Substring(0, 8))" }
+          .\scripts\package-windows-release.ps1 -Version $version -BuildDir build-sm61 -OutputDir dist
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: strata-qwen36-pascal-windows-sm61
+          path: |
+            dist/*.zip
+            dist/*.sha256
+          if-no-files-found: error
+          compression-level: 0
+
+      - name: Publish tagged GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $zip = Get-ChildItem dist\*.zip -ErrorAction Stop | Select-Object -First 1
+          $hash = Get-ChildItem dist\*.sha256 -ErrorAction Stop | Select-Object -First 1
+          gh release create $env:GITHUB_REF_NAME $zip.FullName $hash.FullName `
+            --title "Strata Qwen3.6 Pascal Optimized $env:GITHUB_REF_NAME" `
+            --generate-notes

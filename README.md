@@ -2,7 +2,7 @@
 
 An experimental source fork of Strata's Qwen3.6 engine, tuned for the **NVIDIA GeForce GTX 1050 Ti Mobile 4 GB** (`sm61`). It runs the 35B-A3B MoE model with CPU/GPU expert execution, an adaptive GPU expert cache, MTP drafting, and a long-prompt layer-major prefill path.
 
-This repository contains source code and reproducible Windows build/run scripts. It does **not** contain the model, binaries, DLLs, benchmark logs, or release archives.
+This repository contains source code and reproducible Windows build/run scripts. It does **not** commit the model, binaries, DLLs, benchmark logs, or release archives. Tagged builds are compiled by GitHub Actions and attached separately on the [Releases page](https://github.com/SirDebugALot/Strata-Qwen3.6-35B-A3B-Pascal-Optimized/releases).
 
 ## Performance on the GTX 1050 Ti Mobile
 
@@ -56,6 +56,18 @@ build-sm61\strata-qwen35moe.exe
 ```
 
 No prebuilt executable is committed.
+
+## Prebuilt Windows release
+
+The `Windows Pascal release` GitHub Actions workflow builds the same `sm61` target with CUDA Toolkit 12.9. A pushed `v*` tag creates a GitHub Release containing a ZIP and its SHA-256 checksum. The ZIP contains the engine, required cuBLAS and Visual C++ runtime DLLs, the optimized launcher, and the web/API server. It does not contain the GGUF model.
+
+After extracting a release, run `SETUP-RUNTIME.bat` once and then:
+
+```bat
+START-OPTIMIZED-PASCAL.bat "D:\models\Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf"
+```
+
+See [BINARY-RELEASE.md](BINARY-RELEASE.md) for requirements and complete instructions.
 
 ## Run the optimized profile
 
